@@ -26,6 +26,55 @@ packer build \
 | subnet_id | | `subnet-xxxxxxxxxxxxxxxxx` | The ID of the Subnet to place the Packer builder. |
 | volume_size | `100` | Any whole number in Gb | The size of the secondary volume. |
 
+To deploy an EKS cluster using these AMIs as part of a manage node group, use the follow eksctl cluster.yml file. You will need to replace the AMI ID, region, and cluster name in the metadata and bootstrap command with values to match your environment. This file also attaches the policy for SSM.
+
+```yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: rhel7
+  region: us-east-2
+
+vpc:
+  clusterEndpoints:
+    publicAccess: true
+    privateAccess: true
+
+cloudWatch:
+  clusterLogging:
+    enableTypes:
+      - "audit"
+      - "authenticator"
+
+iam:
+  withOIDC: true
+
+managedNodeGroups:
+
+  - name: ng-1
+    ami: ami-079099b4e0e9b1c38
+    instanceType: m5.xlarge
+    minSize: 3
+    desiredCapacity: 3
+    maxSize: 6
+    privateNetworking: true
+    labels:
+      role: worker
+    iam:
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+    ssh:
+      allow: true
+      publicKeyPath: ~/.ssh/id_rsa.pub
+    overrideBootstrapCommand: |
+      /etc/eks/bootstrap.sh rhel7 --kubelet-extra-args '--node-labels=eks.amazonaws.com/nodegroup=ng-1,eks.amazonaws.com/nodegroup-image=ami-079099b4e0e9b1c38'
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/rhel7: "true"
+
+```
+
 ## Disk Layout
 
 The resulting images consists of two disks, a root disk and a secondary disk. The secondary disk is used to add the required partitions to meet CIS Benchmark requirements.

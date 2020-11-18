@@ -1,0 +1,71 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+# define basic metadata about the cluster
+metadata:
+  name: rhel7
+  region: us-east-2
+
+# configure public and private access to the cluster
+# we recommend limiting this to private if you dont need
+# external access to the cluster
+vpc:
+  clusterEndpoints:
+    publicAccess: true
+    privateAccess: true
+
+# forward important control plane logs to cloudwatch
+cloudWatch:
+  clusterLogging:
+    enableTypes:
+      - "audit"
+      - "authenticator"
+
+# enable the IAM integration with EKS
+iam:
+  withOIDC: true
+
+  # define service account roles for least privileged containers
+  serviceAccounts:
+
+    - metadata:
+        name: cluster-autoscaler
+        namespace: kube-system
+        labels:
+          aws-usage: cluster-ops
+          app.kubernetes.io/name: cluster-autoscaler
+      attachPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Resource: "*"
+            Action:
+              - "autoscaling:DescribeAutoScalingGroups"
+              - "autoscaling:DescribeAutoScalingInstances"
+              - "autoscaling:DescribeLaunchConfigurations"
+              - "autoscaling:DescribeTags"
+              - "autoscaling:SetDesiredCapacity"
+              - "autoscaling:TerminateInstanceInAutoScalingGroup"
+
+managedNodeGroups:
+
+  - name: ng-1
+    ami: ami-079099b4e0e9b1c38
+    instanceType: m5.xlarge
+    minSize: 3
+    desiredCapacity: 3
+    maxSize: 6
+    privateNetworking: true
+    labels:
+      role: worker
+    iam:
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+    ssh:
+      allow: true
+      publicKeyPath: ~/.ssh/id_rsa.pub
+    overrideBootstrapCommand: |
+      /etc/eks/bootstrap.sh rhel7 --kubelet-extra-args '--node-labels=eks.amazonaws.com/nodegroup=ng-1,eks.amazonaws.com/nodegroup-image=ami-079099b4e0e9b1c38'
+    tags:
+      k8s.io/cluster-autoscaler/enabled: "true"
+      k8s.io/cluster-autoscaler/rhel7: "true"
