@@ -110,7 +110,6 @@ chown root:root /etc/systemd/system/kubelet.service
 curl -sL -o /etc/kubernetes/kubelet/kubelet-config.json https://raw.githubusercontent.com/awslabs/amazon-eks-ami/master/files/kubelet-config.json
 chown root:root /etc/kubernetes/kubelet/kubelet-config.json
 
-
 systemctl daemon-reload && systemctl disable kubelet
 
 ################################################################################
@@ -131,3 +130,7 @@ vm.overcommit_memory=1
 kernel.panic=10
 kernel.panic_on_oops=1
 EOF
+
+# relabel the operating system now that all bits are installed
+touch /.autorelabel
+reboot

@@ -44,6 +44,31 @@ mkdir -p /etc/systemd/system/docker.service.d
 mkdir -p /etc/docker
 
 curl -sL -o /etc/docker/daemon.json https://raw.githubusercontent.com/awslabs/amazon-eks-ami/master/files/docker-daemon.json
+
+DOCKER_SELINUX_ENABLED="false"
+
+if selinuxenabled; then
+  # enable container selinux boolean
+  setsebool container_manage_cgroup on
+
+  # enable SELinux in the docker daemon
+  DOCKER_SELINUX_ENABLED="true"
+fi
+
+cat > /etc/docker/daemon.json <<EOF
+{
+  "bridge": "none",
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "10"
+  },
+  "live-restore": true,
+  "max-concurrent-downloads": 10,
+  "selinux-enabled": ${DOCKER_SELINUX_ENABLED}
+}
+EOF
+
 chown root:root /etc/docker/daemon.json
 
 # add an environment file
@@ -51,8 +76,5 @@ cat > /etc/systemd/system/docker.service.d/environment.conf <<EOF
 [Service]
 EnvironmentFile=/etc/environment
 EOF
-
-# enable container selinux boolean
-setsebool container_manage_cgroup on
 
 systemctl daemon-reload && systemctl enable docker

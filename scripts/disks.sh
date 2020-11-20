@@ -68,5 +68,7 @@ migrate_and_mount_disk /dev/nvme1n1p3 /var/log/audit
 migrate_and_mount_disk /dev/nvme1n1p4 /home
 migrate_and_mount_disk /dev/nvme1n1p5 /var/lib/docker
 
+systemctl start postfix tuned rsyslog crond irqbalance polkit chronyd NetworkManager
+
 # reboot the instance to apply updates
 reboot

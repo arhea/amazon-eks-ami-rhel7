@@ -7,6 +7,7 @@
     "cni_plugin_version": "v0.8.6",
     "binary_bucket_name": "amazon-eks",
     "binary_bucket_region": "us-west-2",
+    "hardening_flag": "false",
     "volume_size":"100",
     "vpc_id":"",
     "subnet_id":"",
@@ -76,6 +77,19 @@
   ],
   "provisioners":[
     {
+      "type": "shell",
+      "inline": [
+        "mkdir -p /etc/packer/files",
+        "chown -R ec2-user:ec2-user /etc/packer/files"
+      ],
+      "execute_command":"echo 'packer' | {{.Vars}} sudo -S -E bash -eux '{{.Path}}'"
+    },
+    {
+      "type": "file",
+      "source": "./files/",
+      "destination": "/etc/packer/files"
+    },
+    {
       "type":"shell",
       "scripts": [
         "./scripts/basic.sh",
@@ -83,7 +97,19 @@
       ],
       "execute_command":"echo 'packer' | {{.Vars}} sudo -S -E bash -eux '{{.Path}}'",
       "expect_disconnect":true,
-      "pause_after":"15s"
+      "pause_after":"30s"
+    },
+    {
+      "type":"shell",
+      "scripts": [
+        "./scripts/hardening.sh"
+      ],
+      "execute_command":"echo 'packer' | {{.Vars}} sudo -S -E bash -eux '{{.Path}}'",
+      "expect_disconnect":true,
+      "pause_after":"30s",
+      "environment_vars": [
+        "HARDENING_FLAG={{user `hardening_flag`}}"
+      ]
     },
     {
       "type":"shell",
@@ -92,14 +118,23 @@
         "./scripts/eks.sh"
       ],
       "execute_command":"echo 'packer' | {{.Vars}} sudo -S -E bash -eux '{{.Path}}'",
+      "expect_disconnect":true,
+      "pause_after":"30s",
       "environment_vars": [
         "KUBERNETES_VERSION={{user `eks_version`}}",
         "KUBERNETES_BUILD_DATE={{user `eks_build_date`}}",
         "BINARY_BUCKET_NAME={{user `binary_bucket_name`}}",
         "BINARY_BUCKET_REGION={{user `binary_bucket_region`}}",
         "CNI_PLUGIN_VERSION={{user `cni_plugin_version`}}",
-        "PULL_CNI_FROM_GITHUB=true"
+        "HARDENING_FLAG={{user `hardening_flag`}}"
       ]
+    },
+    {
+      "type":"shell",
+      "scripts": [
+        "./scripts/cleanup.sh"
+      ],
+      "execute_command":"echo 'packer' | {{.Vars}} sudo -S -E bash -eux '{{.Path}}'"
     }
   ]
 }

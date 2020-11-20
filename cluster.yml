@@ -3,7 +3,7 @@ kind: ClusterConfig
 
 # define basic metadata about the cluster
 metadata:
-  name: rhel7
+  name: rhel
   region: us-east-2
 
 # configure public and private access to the cluster
@@ -50,7 +50,7 @@ iam:
 managedNodeGroups:
 
   - name: ng-1
-    ami: ami-079099b4e0e9b1c38
+    ami: <AMI ID>
     instanceType: m5.xlarge
     minSize: 3
     desiredCapacity: 3
@@ -58,14 +58,14 @@ managedNodeGroups:
     privateNetworking: true
     labels:
       role: worker
+    disableIMDSv1: true
     iam:
       attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
         - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
-    ssh:
-      allow: true
-      publicKeyPath: ~/.ssh/id_rsa.pub
     overrideBootstrapCommand: |
-      /etc/eks/bootstrap.sh rhel7 --kubelet-extra-args '--node-labels=eks.amazonaws.com/nodegroup=ng-1,eks.amazonaws.com/nodegroup-image=ami-079099b4e0e9b1c38'
+      /etc/eks/bootstrap.sh rhel --kubelet-extra-args '--node-labels=eks.amazonaws.com/nodegroup=ng-1,eks.amazonaws.com/nodegroup-image=<AMI ID>'
     tags:
       k8s.io/cluster-autoscaler/enabled: "true"
-      k8s.io/cluster-autoscaler/rhel7: "true"
+      k8s.io/cluster-autoscaler/rhel: "true"

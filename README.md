@@ -25,6 +25,7 @@ packer build \
 | vpc_id | | `vpc-xxxxxxxxxxxxxxxxx` | The ID of the VPC to place the Packer builder. |
 | subnet_id | | `subnet-xxxxxxxxxxxxxxxxx` | The ID of the Subnet to place the Packer builder. |
 | volume_size | `100` | Any whole number in Gb | The size of the secondary volume. |
+| hardening | `false` | `stig` | The hardening to apply to the instance. |
 
 To deploy an EKS cluster using these AMIs as part of a manage node group, use the follow eksctl cluster.yml file. You will need to replace the AMI ID, region, and cluster name in the metadata and bootstrap command with values to match your environment. This file also attaches the policy for SSM.
 
@@ -74,6 +75,14 @@ managedNodeGroups:
       k8s.io/cluster-autoscaler/rhel7: "true"
 
 ```
+
+## Hardening
+
+This image supports applying the [DISA STIG](https://www.stigviewer.com/stig/red_hat_enterprise_linux_7/) via [open-scap](https://www.open-scap.org/). The profile is applied with a [tailoring file](./files/ssg-rhel7-ds-tailoring.xml) that skips FIPS 140-2. FIPS 140-2 is manually applied to workaround an issue that causes the instance not to boot. FIPS mode is enabled but the boot UUID is not supported. FIPS 140-2 is applied via the [hardening.sh](./scripts/hardening.sh) file.
+
+### SELinux
+
+The Amazon VPC CNI driver does not support SELinux. You will need to patch the `aws-node` daemon set to make the aws-node container privileged.
 
 ## Disk Layout
 
